@@ -1,0 +1,123 @@
+---
+title: “Arbeidskrav datavitenskap”
+author: “Paul Indset”
+echo: false
+output: true
+editor: visual
+---
+
+```{r}
+rm(list=ls()) 
+library(rsdmx)
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(scales) 
+```
+
+```{r}
+df_lower <- read_table2("https://www.nsstc.uah.edu/data/msu/v6.0/tlt/uahncdc_lt_6.0.txt")
+
+df_mid<- read_table2("http://vortex.nsstc.uah.edu/data/msu/v6.1/tmt/uahncdc_mt_6.1.txt")
+
+df_lowerS <- read_table2("http://vortex.nsstc.uah.edu/data/msu/v6.1/tls/uahncdc_ls_6.1.txt")
+
+df_T <- read_table2("http://vortex.nsstc.uah.edu/data/msu/v6.1/ttp/uahncdc_tp_6.1.txt")
+```
+
+```{r}
+# Krev nødvendige biblioteker
+library(dplyr)
+library(zoo)
+library(readr) # Hvis ikke allerede lastet for read_table2
+
+# Funksjon for å beregne 12-måneders glidende gjennomsnitt for global temperatur
+calculate_moving_average <- function(data, col_name) {
+  # Sjekk kolonnenavnene
+  print(names(data))
+  
+  data %>%
+    filter(Year >= 1980) %>%  # Filtrer data fra 1980 og utover
+    mutate(
+      # Konverter til numerisk for å unngå feilmelding
+      !!sym(col_name) := as.numeric(!!sym(col_name)),
+      Moving_Avg = rollmean(!!sym(col_name), 12, fill = NA, align = "right")
+    )
+}
+
+# Sjekk hva de faktiske kolonnenavnene er
+print(names(df_lower))
+
+# Bruk riktig kolonnenavn
+df_lower_avg <- calculate_moving_average(df_lower, col_name = "Globe") 
+df_mid_avg <- calculate_moving_average(df_mid, col_name = "Globe")
+df_lowerS_avg <- calculate_moving_average(df_lowerS, col_name = "Globe")
+df_T_avg <- calculate_moving_average(df_T, col_name = "Globe")
+
+```
+
+```{r}
+df_combined <- bind_rows(df_lower_avg, df_mid_avg, df_T_avg, df_lowerS_avg)
+
+df_average <- df_combined %>%
+  group_by(Year) %>%
+  summarise(Moving_Avg = mean(Moving_Avg, na.rm = TRUE)) %>%
+  mutate(Level = "Average")
+```
+
+```{r}
+df_final <- bind_rows(df_combined, df_average)
+```
+
+```{r}
+ggplot(df_final, aes(x = Year, y = Moving_Avg, color = Level)) +
+  geom_line(size = 1.2) + 
+  scale_x_continuous(
+    breaks = seq(1980, max_year, by = 5),  # Viser år hvert 5. år
+    labels = function(x) format(x, digits = 1)  # Fjerner desimaler
+  ) +
+  labs(title = "12-Month Moving Average of Global Temperature Anomalies",
+       subtitle = "Data from 1980 onwards for four atmospheric levels",
+       x = "Year",
+       y = "Temperature Anomaly (°C)",
+       color = "Atmospheric Level") +
+  theme_light() +  # Bedre kontrast og lesbarhet
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.text.x = element_text(size = 12, angle = 45, hjust = 1),  
+    axis.text = element_text(size = 12),
+    axis.title = element_text(size = 14),
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 11),
+    panel.grid.major = element_line(color = "grey85", linetype = "dashed")
+  ) +
+  guides(color = guide_legend(override.aes = list(size = 2)))  
+
+
+```
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+
+```
+
+```{r}
+```
+
+```{r}
+```
