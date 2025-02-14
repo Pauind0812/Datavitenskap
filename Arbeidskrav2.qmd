@@ -1,0 +1,152 @@
+---
+title: “Arbeidskrav datavitenskap”
+author: “Paul Indset”
+echo: false
+output: true
+editor: visual
+---
+
+```{r}
+rm(list=ls()) 
+library(rvest)
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+```
+
+```{r}
+url <- "https://raw.githubusercontent.com/uit-sok-1005-v23/uit-sok-1005-v23.github.io/main/storedata.csv"
+data <- read_csv(url)
+data <- data %>%
+  mutate(Order_Date = as.Date(Order_Date, format = "%Y-%m-%d"))
+
+```
+
+```{r}
+table1 <- data %>%
+  mutate(Month = format(Order_Date, "%Y-%m")) %>%
+  group_by(Order_Date, Region, Customer_Segment) %>%
+  summarise(Total_Sales = sum(Sales, na.rm = TRUE)) %>%
+  ungroup()
+```
+
+```{r}
+plot_data <- data %>%
+  filter(year(Order_Date) %in% c(2015, 2016, 2017),
+         Region %in% c("Region 1", "Region 13")) %>%
+  mutate(Month = format(Order_Date, "%Y-%m")) %>%
+  group_by(Month, Region) %>%
+  summarise(Total_Sales = sum(Sales, na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(Month_Date = ymd(paste0(Month, "-01")))
+```
+
+```{r}
+ggplot(plot_data, aes(x = Month_Date, y = Total_Sales, color = factor(Region))) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Monthly Total Sales in Region 1 and Region 13 (2015-2017)",
+       x = "Month",
+       y = "Total Sales",
+       color = "Region") +
+  theme_minimal() +
+  scale_x_date(date_breaks = "3 months", date_labels = "%Y-%m") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+sales_wide <- plot_data %>%
+  select(Month, Region, Total_Sales) %>%
+  pivot_wider(names_from = Region, values_from = Total_Sales)
+
+table2 <- sales_wide %>%
+  filter(!is.na(`Region 1`) & !is.na(`Region 13`),
+         `Region 13` > `Region 1`)
+
+cat("\nTable 2: Months where Region 13 Sales > Region 1 Sales\n")
+print(table2)
+
+```
+
+```{r}
+table3 <- data %>%
+  filter(year(Order_Date) == 2017,
+         !Region %in% c(3, 5, 8)) %>%
+  group_by(Customer_Segment, Product_Category) %>%
+  summarise(Avg_Profit = mean(Profit, na.rm = TRUE)) %>%
+  ungroup()
+
+cat("\nTable 3: Average Profit per Customer_Segment and Product_Category in 2017 (excluding Regions 3,5,8)\n")
+print(table3)
+
+segment_profit <- data %>%
+  filter(year(Order_Date) == 2017,
+         !Region %in% c(3, 5, 8)) %>%
+  group_by(Customer_Segment) %>%
+  summarise(Overall_Avg_Profit = mean(Profit, na.rm = TRUE)) %>%
+  ungroup()
+
+highest_profit_segment <- segment_profit %>%
+  filter(Overall_Avg_Profit == max(Overall_Avg_Profit))
+
+cat("\nCustomer Segment with the highest overall average Profit in 2017 (excluding Regions 3,5,8):\n")
+print(highest_profit_segment)
+
+```
+
+Task2
+
+```{r}
+rm(list=ls()) 
+library(rvest)
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+```
+
+```{r}
+url <- "https://www.motor.no/aktuelt/motors-store-vintertest-av-rekkevidde-pa-elbiler/217132"
+webpage <- read_html(url)
+raw_table <- html_table(html_nodes(webpage, "div table")[[1]])
+```
+
+```{r}
+clean_data <- raw_table %>%
+  rename(model = X1,
+         wltp = X2,
+         stopp = X3) %>%
+  mutate(wltp = as.numeric(gsub("[^0-9\\.]", "", wltp)),
+         stopp = as.numeric(gsub("[^0-9\\.]", "", stopp))) %>%
+  filter(!is.na(wltp) & !is.na(stopp))
+```
+
+```{r}
+p <- ggplot(clean_data, aes(x = wltp, y = stopp)) +
+  geom_point(size = 3, alpha = 0.7) +
+  geom_abline(intercept = 0, slope = 1, color = "red", linetype = "dashed", size = 1) +
+  labs(title = "Promised WLTP Range vs. Actual STOPP Range",
+       subtitle = "The red dashed line indicates where actual range equals the WLTP value.\nNone of the models reach the expected range; actual range is systematically lower.",
+       x = "WLTP (Promised Range)",
+       y = "STOPP (Actual Range)") +
+  theme_minimal()
+print(p)
+```
+
+```{r}
+model <- lm(stopp ~ wltp, data = clean_data)
+summary_model <- summary(model)
+print(summary_model)
+```
+
+```{r}
+p_final <- p + 
+  geom_smooth(method = "lm", se = FALSE, color = "blue", size = 1) +
+  labs(caption = paste("Regression line: Actual Range =",
+                       round(coef(model)[1], 2), "+",
+                       round(coef(model)[2], 2), "* WLTP"))
+
+print(p_final)
+```
+
+```{r}
+```
