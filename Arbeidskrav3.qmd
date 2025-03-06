@@ -1,0 +1,235 @@
+---
+title: “Arbeidskrav datavitenskap”
+author: “Paul Indset”
+echo: false
+output: true
+editor: visual
+---
+
+```{r}
+rm(list=ls()) 
+library(tidyverse)
+library(readxl)
+library(ggplot2)
+```
+
+```         
+```
+
+```{r}
+
+df_fig6 <- readxl::read_excel("/Users/paulindset/Desktop/Datavitenskap/f319e1c8-5654-4cd6-b4c7-5722ae437d30-Ukraine_Support_Tracker_Release_21.xlsx", 
+                              sheet = "Fig 6. With Refugee Support, €") 
+
+
+
+
+```
+
+```{r}
+ggplot(df_fig6, aes(x = Country, y = Financial)) +
+  geom_col(fill = "steelblue", width = 0.7) +
+  geom_text(aes(label = round(Financial, 2)), 
+            hjust = -0.1, 
+            size = 2, 
+            color = "black") +
+  coord_flip() +
+  labs(title = "Financial Commitments by Country",
+       x = "Country",
+       y = "Billion Euros") +
+  theme_minimal(base_size = 14) +
+  theme(axis.text.y = element_text(size = 6),  # Set country names size here
+        plot.title = element_text(face = "bold", hjust = 0.5))
+
+```
+
+```{r}
+
+```
+
+```{rm(list=ls())}
+library(readr)
+library(lubridate)
+
+
+```
+
+Task2
+
+```{r}
+rm(list=ls()) 
+library(readr)
+library(lubridate)
+```
+
+```{r}
+library(tidyverse)
+library(lubridate)
+
+# Load the dataset
+url <- "https://raw.githubusercontent.com/ywchiu/rcookbook/master/chapter7/superstore_sales.csv"
+df <- read_csv(url)
+
+```
+
+```{r}
+df <- df %>%
+  mutate(`Order Date` = as.Date(`Order Date`, format="%m/%d/%Y"),
+         Year = year(`Order Date`),
+         Month = month(`Order Date`, label = TRUE))
+
+monthly_sales <- df %>%
+  group_by(Year, Month) %>%
+  summarise(Total_Sales = sum(Sales, na.rm = TRUE)) %>%
+  arrange(Year, Month)
+
+ggplot(monthly_sales, aes(x = Month, y = Total_Sales, fill = Year)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Total sales per month", x = "Month", y = "Total Sales") +
+  theme_minimal()
+
+
+```
+I coundt get the code above to work.
+Task2
+
+```{r}
+superstore <- superstore %>%
+  mutate(Order_Date = as.Date(`Order Date`, format = "%m/%d/%Y"),
+         Month = format(Order_Date, "%Y-%m"))
+
+```
+
+```{r}
+province_sales <- df %>%
+  group_by(Province) %>%
+  summarise(Total_Sales = sum(Sales, na.rm = TRUE)) %>%
+  arrange(desc(Total_Sales))
+
+ggplot(province_sales, aes(x = reorder(Province, -Total_Sales), y = Total_Sales, fill = Province)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Total sales by city", x = "City", y = "Total sales") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
+```{r}
+province_category_sales <- df %>%
+  group_by(Province, `Product Category`) %>%
+  summarise(Total_Sales = sum(Sales, na.rm = TRUE)) %>%
+  arrange(Province, desc(Total_Sales))
+
+top_categories <- province_category_sales %>%
+  group_by(Province) %>%
+  slice_max(order_by = Total_Sales, n = 1)
+
+ggplot(top_categories, aes(x = reorder(Province, -Total_Sales), y = Total_Sales, fill = `Product Category`)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Top-selling product category by city", x = "City", y = "Total sales") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+
+```
+
+```{r}
+library(gapminder)
+library(dplyr)
+
+asia_gap <- gapminder %>% filter(continent == "Asia")
+
+lifeExp_stats <- asia_gap %>%
+  group_by(year) %>%
+  summarise(min_lifeExp = min(lifeExp),
+            max_lifeExp = max(lifeExp))
+
+print(lifeExp_stats)
+
+```
+
+```{r}
+lifeExp_stats <- lifeExp_stats %>%
+  arrange(year) %>%
+  mutate(min_log_diff = c(NA, diff(log(min_lifeExp))),
+         max_log_diff = c(NA, diff(log(max_lifeExp))))
+
+print(lifeExp_stats)
+
+avg_min_growth <- mean(lifeExp_stats$min_log_diff, na.rm = TRUE)
+avg_max_growth <- mean(lifeExp_stats$max_log_diff, na.rm = TRUE)
+
+cat("Average log for minimum life expectancy:", avg_min_growth, "\n")
+cat("Average log for maximum life expectancy:", avg_max_growth, "\n")
+
+if(avg_min_growth > avg_max_growth) {
+  cat("Minimum life expectancy has grown more on average in Asia.\n")
+} else {
+  cat("Maximum life expectancy has grown more on average in Asia.\n")
+}
+
+```
+
+```{r}
+country_avg <- gapminder %>%
+  group_by(country) %>%
+  summarise(avg_lifeExp = mean(lifeExp),
+            avg_gdpPercap = mean(gdpPercap))
+
+top20_lifeExp <- country_avg %>% arrange(desc(avg_lifeExp)) %>% slice(1:20)
+
+ggplot(top20_lifeExp, aes(x = avg_lifeExp, y = reorder(country, avg_lifeExp))) +
+  geom_point(color = "purple", size = 3) +
+  labs(title = "Top 20 Countries by average life expectancy",
+       x = "Average life expectancy",
+       y = "Country") +
+  theme_minimal()
+
+top20_gdp <- country_avg %>% arrange(desc(avg_gdpPercap)) %>% slice(1:20)
+
+ggplot(top20_gdp, aes(x = avg_gdpPercap, y = reorder(country, avg_gdpPercap))) +
+  geom_point(color = "darkorange", size = 3) +
+  labs(title = "Top 20 countries by average GDP per capita",
+       x = "Average GDP per capita",
+       y = "Country") +
+  theme_minimal()
+
+```
+
+```{r}
+
+country_avg_continent <- gapminder %>%
+  group_by(country, continent) %>%
+  summarise(avg_lifeExp = mean(lifeExp),
+            avg_gdpPercap = mean(gdpPercap),
+            .groups = "drop")
+
+ggplot(country_avg_continent, aes(x = avg_gdpPercap, y = avg_lifeExp, color = continent)) +
+  geom_point(size = 3) +
+  scale_x_log10() +
+  labs(title = "Average life expectancy vs GDP per capita",
+       x = "Average GDP per capita",
+       y = "Average life expectancy") +
+  theme_minimal()
+
+```
+```{r}
+gapminder_diff <- gapminder %>%
+  group_by(country, continent) %>%
+  arrange(year) %>%
+  mutate(lifeExp_change = lifeExp - lag(lifeExp)) %>%
+  ungroup()
+
+country_min_change <- gapminder_diff %>%
+  group_by(country, continent) %>%
+  summarise(min_change = min(lifeExp_change, na.rm = TRUE),
+            .groups = "drop")
+
+sharpest_drop <- country_min_change %>%
+  group_by(continent) %>%
+  filter(min_change == min(min_change)) %>%
+  ungroup()
+
+print(sharpest_drop)
+
+```
